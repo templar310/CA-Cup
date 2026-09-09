@@ -460,19 +460,25 @@ function statusLabel(status, names) {
   };
 }
 
-/** Chino is always the "A" side, Anaheim always "B" — a match awards
- * its point once it's decided (closed out, or all square through 18);
- * matches still being played don't count toward the total yet. */
+/** Chino is always the "A" side, Anaheim always "B". Live projection:
+ * a match that's finished (closed out, or all square through 18)
+ * awards its real point; a match still being played counts toward
+ * whichever side currently leads it, updating hole by hole — so the
+ * total reflects the live state of the cup, not just settled matches. */
 function computeTeamTotals(matchDocs) {
   let chino = 0, anaheim = 0, inProgress = 0;
   matchDocs.forEach((d) => {
     const status = computeStatus((d.data().holes) || {});
+    if (status.lastPlayed === 0) return;
     if (status.closedAt) {
       if (status.closedAt.diff > 0) chino += 1; else anaheim += 1;
     } else if (status.allSquareFinal) {
       chino += 0.5; anaheim += 0.5;
     } else {
       inProgress++;
+      if (status.diff > 0) chino += 1;
+      else if (status.diff < 0) anaheim += 1;
+      else { chino += 0.5; anaheim += 0.5; }
     }
   });
   return { chino, anaheim, inProgress };
@@ -502,7 +508,7 @@ function renderTeamScoreCard(matchDocs) {
           <div class="fill-anaheim" style="width:${anaheimPct}%"></div>
         </div>
       ` : ""}
-      ${inProgress > 0 ? `<div class="team-score-note">${inProgress} match${inProgress === 1 ? "" : "es"} still in progress</div>` : ""}
+      ${inProgress > 0 ? `<div class="team-score-note">Live — ${inProgress} match${inProgress === 1 ? "" : "es"} still in progress</div>` : ""}
     </div>
   `;
 }
