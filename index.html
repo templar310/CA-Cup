@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F4D3C">
+<title>Match Play Live</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fairway: #1F4D3C;
+    --fairway-deep: #163a2d;
+    --cream: #F5F0E4;
+    --cream-panel: #FBF8F0;
+    --graphite: #262420;
+    --graphite-soft: #5B564C;
+    --flag: #B23A2E;
+    --flag-soft: #E8DCD3;
+    --bunker: #D9C9A3;
+    --hairline: #D8CFB8;
+    --up-a: #1F4D3C;
+    --up-b: #B23A2E;
+    --halve: #8A7F63;
+    --shadow: 0 1px 2px rgba(38,36,32,0.06), 0 8px 24px rgba(38,36,32,0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fairway: #6FBE9C;
+      --fairway-deep: #163a2d;
+      --cream: #12211B;
+      --cream-panel: #17281F;
+      --graphite: #ECE6D6;
+      --graphite-soft: #A8A08C;
+      --flag: #E28A78;
+      --flag-soft: #2A211D;
+      --bunker: #3A3323;
+      --hairline: #2C3B31;
+      --up-a: #6FBE9C;
+      --up-b: #E28A78;
+      --halve: #B7AE93;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cream);
+    color: var(--graphite);
+    font-family: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding-bottom: 48px;
+  }
+  h1, h2, h3, .display {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .mono, .score-cell, .status-pill, .diff-num {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--graphite-soft);
+  }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--fairway);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead {
+    background: var(--fairway);
+    color: var(--cream-panel);
+    padding: 28px 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  @media (prefers-color-scheme: dark) { .masthead { background: var(--fairway-deep); color: #EDE7D8; } }
+  .masthead::after {
+    content: "";
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .masthead-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; position: relative; }
+  .masthead h1 { margin: 0; font-size: 1.5rem; color: inherit; }
+  .masthead .sub { margin-top: 4px; opacity: 0.78; font-size: 0.88rem; }
+  .flag-icon { font-size: 1.15rem; margin-right: 2px; }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- Home / clubhouse board ---------- */
+  .board-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 22px 0 12px;
+  }
+  .new-match-btn {
+    background: var(--flag);
+    color: #FBF3EC;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    box-shadow: var(--shadow);
+  }
+  .match-list { display: flex; flex-direction: column; gap: 10px; }
+  .match-card {
+    background: var(--cream-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: var(--shadow);
+  }
+  .match-card .label { font-size: 0.72rem; color: var(--graphite-soft); margin-bottom: 2px; }
+  .match-card .players {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: "Fraunces", serif; font-weight: 600; font-size: 1.05rem;
+  }
+  .match-card .vs { color: var(--graphite-soft); font-family: "Public Sans", sans-serif; font-size: 0.8rem; font-weight: 600; padding: 0 8px; }
+  .match-card .status-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .status-pill {
+    display: inline-block;
+    font-size: 0.76rem; font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--bunker);
+    color: var(--graphite);
+  }
+  .status-pill.a { background: color-mix(in srgb, var(--up-a) 18%, var(--cream-panel)); color: var(--up-a); }
+  .status-pill.b { background: color-mix(in srgb, var(--up-b) 18%, var(--cream-panel)); color: var(--up-b); }
+  .status-pill.closed { background: var(--flag); color: #FBF3EC; }
+  .empty-state {
+    text-align: center; padding: 56px 20px;
+    color: var(--graphite-soft);
+  }
+  .empty-state .display { font-size: 1.2rem; color: var(--graphite); margin-bottom: 6px; }
+
+  /* ---------- New match modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(20,20,16,0.4);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 30;
+  }
+  @media (min-width: 520px) { .modal-backdrop { align-items: center; } }
+  .modal {
+    background: var(--cream-panel);
+    width: 100%; max-width: 440px;
+    border-radius: 18px 18px 0 0;
+    padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+  }
+  @media (min-width: 520px) { .modal { border-radius: 18px; } }
+  .modal h2 { margin: 0 0 4px; font-size: 1.25rem; }
+  .modal .sub { color: var(--graphite-soft); font-size: 0.85rem; margin-bottom: 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--graphite-soft); margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 12px 13px;
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--cream);
+    color: var(--graphite);
+  }
+  .field input:focus { border-color: var(--fairway); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    flex: 1;
+    border: none; border-radius: 10px;
+    padding: 13px; font-weight: 700; font-size: 0.95rem;
+    text-align: center;
+  }
+  .btn-primary { background: var(--fairway); color: var(--cream-panel); }
+  .btn-secondary { background: transparent; color: var(--graphite-soft); border: 1.5px solid var(--hairline); }
+
+  /* ---------- Match view ---------- */
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+  .match-title { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+  .match-title .name { font-size: 1.3rem; }
+  .match-title .name.leading { text-decoration: underline; text-decoration-color: rgba(255,255,255,0.5); text-underline-offset: 4px; }
+  .match-title .vs-small { opacity: 0.7; font-size: 0.8rem; font-family: "Public Sans", sans-serif; }
+
+  .result-banner {
+    margin-top: 22px;
+    background: var(--cream-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .result-banner .headline { font-size: 1.4rem; margin: 0 0 4px; }
+  .result-banner .detail { color: var(--graphite-soft); font-size: 0.88rem; }
+  .result-banner.closed { border-color: var(--flag); }
+
+  .next-hole-card {
+    margin-top: 22px;
+    background: var(--cream-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .next-hole-card .eyebrow { text-align: center; margin-bottom: 4px; }
+  .next-hole-card .hole-num { text-align: center; font-size: 2.2rem; margin: 0 0 16px; }
+  .win-buttons { display: grid; grid-template-columns: 1fr 72px 1fr; gap: 8px; }
+  .win-btn {
+    border: 1.5px solid var(--hairline);
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 14px 8px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--graphite);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .win-btn .who { font-family: "Fraunces", serif; font-size: 1rem; }
+  .win-btn.halve-btn { font-size: 0.72rem; letter-spacing: 0.02em; }
+  .win-btn:active { transform: scale(0.97); }
+  .win-btn.a-btn:active, .win-btn.a-btn.pressed { background: color-mix(in srgb, var(--up-a) 14%, var(--cream)); border-color: var(--up-a); }
+  .win-btn.b-btn:active, .win-btn.b-btn.pressed { background: color-mix(in srgb, var(--up-b) 14%, var(--cream)); border-color: var(--up-b); }
+
+  .scorecard-section { margin-top: 26px; }
+  .scorecard-section h3 { font-size: 1rem; margin: 0 0 10px; padding: 0 2px; }
+  .nine {
+    background: var(--cream-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .nine-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--graphite-soft);
+    padding: 9px 12px 0;
+  }
+  .hole-row { display: flex; overflow-x: auto; padding: 8px 6px 12px; gap: 4px; -webkit-overflow-scrolling: touch; }
+  .hole-cell {
+    flex: 0 0 auto;
+    width: 42px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 4px 0;
+    border-radius: 9px;
+  }
+  .hole-cell .hn { font-size: 0.68rem; color: var(--graphite-soft); }
+  .hole-cell .mk {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.78rem; font-weight: 700;
+    background: var(--bunker);
+    color: var(--graphite);
+    border: none;
+  }
+  .hole-cell .mk.empty { background: transparent; border: 1.5px dashed var(--hairline); color: var(--hairline); }
+  .hole-cell .mk.a { background: var(--up-a); color: var(--cream-panel); }
+  .hole-cell .mk.b { background: var(--up-b); color: var(--cream-panel); }
+  .hole-cell .mk.halve { background: var(--halve); color: var(--cream-panel); font-size: 0.65rem; }
+
+  .share-row {
+    margin-top: 22px;
+    display: flex; gap: 8px;
+  }
+  .share-row button {
+    flex: 1;
+    background: transparent;
+    border: 1.5px solid var(--hairline);
+    color: var(--graphite-soft);
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--graphite); color: var(--cream);
+    padding: 10px 18px; border-radius: 999px;
+    font-size: 0.85rem; font-weight: 600;
+    box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 40;
+  }
+  .toast.show { opacity: 1; }
+
+  .conn-note {
+    text-align: center; font-size: 0.78rem; color: var(--graphite-soft);
+    padding: 10px 20px 0;
+  }
+
+  [hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .win-btn, .toast { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a href="#/" class="back-link" id="backLink" hidden>&larr; Clubhouse</a>
+    <div class="masthead-row" id="mastheadRow">
+      <div>
+        <h1><span class="flag-icon">⛳</span>Match Play Live</h1>
+        <div class="sub" id="mastheadSub">Real-time scoring for the group</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="app"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, updateDoc, onSnapshot,
+  query, orderBy, serverTimestamp, deleteField
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+/* ============================================================
+   1. FIREBASE SETUP — paste your project's config below.
+   Get this from: Firebase console -> Project settings -> your
+   web app -> "SDK setup and configuration" -> Config.
+   See README.md for the full walkthrough.
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCwSY9EUDITmg1QeJMT4m0SQGUKPwdKLJ0",
+  authDomain: "ca-cup.firebaseapp.com",
+  projectId: "ca-cup",
+  storageBucket: "ca-cup.firebasestorage.app",
+  messagingSenderId: "1040457227269",
+  appId: "1:1040457227269:web:27246286d5120cdbb7506c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const matchesCol = collection(db, "matches");
+
+/* ============================================================
+   2. MATCH-PLAY SCORING ENGINE
+   ============================================================ */
+function computeStatus(holes) {
+  let diff = 0;
+  let lastPlayed = 0;
+  let closedAt = null;
+  for (let h = 1; h <= 18; h++) {
+    const r = holes[h];
+    if (!r) break;
+    lastPlayed = h;
+    if (r === "A") diff++;
+    else if (r === "B") diff--;
+    const remaining = 18 - h;
+    if (closedAt === null && Math.abs(diff) > remaining) {
+      closedAt = { hole: h, diff, remaining };
+    }
+  }
+  return { diff, lastPlayed, closedAt, allSquareFinal: lastPlayed === 18 && diff === 0 };
+}
+
+function statusLabel(status, names) {
+  const { diff, lastPlayed, closedAt, allSquareFinal } = status;
+  if (closedAt) {
+    const leader = closedAt.diff > 0 ? names.a : names.b;
+    return { text: `${leader} wins ${Math.abs(closedAt.diff)} & ${closedAt.remaining}`, kind: "closed" };
+  }
+  if (allSquareFinal) return { text: "Match halved — all square", kind: "halve" };
+  if (lastPlayed === 0) return { text: "Not started", kind: "none" };
+  const remaining = 18 - lastPlayed;
+  if (diff === 0) return { text: `All square thru ${lastPlayed}`, kind: "halve" };
+  const leader = diff > 0 ? names.a : names.b;
+  const mag = Math.abs(diff);
+  const dormie = mag === remaining && remaining > 0;
+  return {
+    text: `${leader} ${mag} up thru ${lastPlayed}${dormie ? " · dormie" : ""}`,
+    kind: diff > 0 ? "a" : "b"
+  };
+}
+
+/* ============================================================
+   3. TINY ROUTER + RENDER
+   ============================================================ */
+const appEl = document.getElementById("app");
+const backLink = document.getElementById("backLink");
+const mastheadSub = document.getElementById("mastheadSub");
+let unsubscribeCurrent = null;
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function route() {
+  if (unsubscribeCurrent) { unsubscribeCurrent(); unsubscribeCurrent = null; }
+  const hash = location.hash || "#/";
+  const matchId = hash.match(/^#\/match\/(.+)$/);
+  if (matchId) {
+    backLink.hidden = false;
+    mastheadSub.textContent = "Tap a hole result as you finish it";
+    renderMatch(decodeURIComponent(matchId[1]));
+  } else {
+    backLink.hidden = true;
+    mastheadSub.textContent = "Real-time scoring for the group";
+    renderHome();
+  }
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- Home: clubhouse board ---------- */
+function renderHome() {
+  appEl.innerHTML = `
+    <div class="board-header">
+      <h2 style="margin:0;font-size:1.1rem;">Today's matches</h2>
+      <button class="new-match-btn" id="newMatchBtn">+ New match</button>
+    </div>
+    <div class="match-list" id="matchList"></div>
+  `;
+  document.getElementById("newMatchBtn").addEventListener("click", showNewMatchModal);
+
+  const q = query(matchesCol, orderBy("createdAt", "desc"));
+  unsubscribeCurrent = onSnapshot(q, (snap) => {
+    const listEl = document.getElementById("matchList");
+    if (!listEl) return;
+    if (snap.empty) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="display">No matches yet</div>
+          <div>Start one and share the link with your group.</div>
+        </div>`;
+      return;
+    }
+    listEl.innerHTML = snap.docs.map((d) => {
+      const m = d.data();
+      const status = statusLabel(computeStatus(m.holes || {}), { a: m.playerA, b: m.playerB });
+      return `
+        <a class="match-card" href="#/match/${encodeURIComponent(d.id)}">
+          ${m.label ? `<div class="label">${escapeHtml(m.label)}</div>` : ""}
+          <div class="players">
+            <span>${escapeHtml(m.playerA)}</span>
+            <span class="vs">vs</span>
+            <span>${escapeHtml(m.playerB)}</span>
+          </div>
+          <div class="status-row">
+            <span class="status-pill ${status.kind}">${status.text}</span>
+          </div>
+        </a>`;
+    }).join("");
+  }, (err) => {
+    console.error(err);
+    appEl.insertAdjacentHTML("beforeend", `<div class="conn-note">Can't reach the scoreboard — check the Firebase config in index.html.</div>`);
+  });
+}
+
+function showNewMatchModal() {
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop";
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h2>New match</h2>
+      <div class="sub">Set up a head-to-head match play pairing.</div>
+      <div class="field">
+        <label for="labelInput">Group / flight (optional)</label>
+        <input id="labelInput" type="text" placeholder="e.g. Flight 2, Semifinal">
+      </div>
+      <div class="field">
+        <label for="nameAInput">Player / team A</label>
+        <input id="nameAInput" type="text" placeholder="e.g. Alex" autofocus>
+      </div>
+      <div class="field">
+        <label for="nameBInput">Player / team B</label>
+        <input id="nameBInput" type="text" placeholder="e.g. Sam">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="createBtn">Start match</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  const close = () => backdrop.remove();
+  backdrop.addEventListener("click", (e) => { if (e.target === backdrop) close(); });
+  document.getElementById("cancelBtn").addEventListener("click", close);
+  document.getElementById("createBtn").addEventListener("click", async () => {
+    const playerA = document.getElementById("nameAInput").value.trim();
+    const playerB = document.getElementById("nameBInput").value.trim();
+    const label = document.getElementById("labelInput").value.trim();
+    if (!playerA || !playerB) { toast("Enter both names"); return; }
+    const btn = document.getElementById("createBtn");
+    btn.textContent = "Starting…";
+    btn.disabled = true;
+    try {
+      const ref = await addDoc(matchesCol, {
+        playerA, playerB, label: label || null,
+        holes: {}, createdAt: serverTimestamp()
+      });
+      close();
+      location.hash = `#/match/${encodeURIComponent(ref.id)}`;
+    } catch (err) {
+      console.error(err);
+      toast("Couldn't create match — check Firebase setup");
+      btn.textContent = "Start match";
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ---------- Match view ---------- */
+function renderMatch(matchId) {
+  appEl.innerHTML = `<div class="conn-note">Loading match…</div>`;
+  const ref = doc(db, "matches", matchId);
+  unsubscribeCurrent = onSnapshot(ref, (snap) => {
+    if (!snap.exists()) {
+      appEl.innerHTML = `<div class="empty-state"><div class="display">Match not found</div><div>It may have been removed.</div></div>`;
+      return;
+    }
+    const m = snap.data();
+    const holes = m.holes || {};
+    const status = computeStatus(holes);
+    const label = statusLabel(status, { a: m.playerA, b: m.playerB });
+    const nextHole = status.closedAt ? null : status.lastPlayed + 1;
+
+    appEl.innerHTML = `
+      <div class="match-title">
+        <span class="name ${status.diff > 0 ? "leading" : ""}">${escapeHtml(m.playerA)}</span>
+        <span class="vs-small">vs</span>
+        <span class="name ${status.diff < 0 ? "leading" : ""}">${escapeHtml(m.playerB)}</span>
+      </div>
+
+      <div class="result-banner ${status.closedAt ? "closed" : ""}">
+        <div class="eyebrow">${m.label ? escapeHtml(m.label) : "Match status"}</div>
+        <p class="headline">${label.text}</p>
+        ${status.closedAt ? `<div class="detail">Match complete — you can still record remaining holes below.</div>` : ""}
+      </div>
+
+      ${nextHole && nextHole <= 18 ? `
+        <div class="next-hole-card">
+          <div class="eyebrow">Enter result</div>
+          <p class="hole-num">Hole ${nextHole}</p>
+          <div class="win-buttons">
+            <button class="win-btn a-btn" data-hole="${nextHole}" data-result="A">
+              <span class="who">${escapeHtml(shortName(m.playerA))}</span><span>won hole</span>
+            </button>
+            <button class="win-btn halve-btn" data-hole="${nextHole}" data-result="halve">Halve</button>
+            <button class="win-btn b-btn" data-hole="${nextHole}" data-result="B">
+              <span class="who">${escapeHtml(shortName(m.playerB))}</span><span>won hole</span>
+            </button>
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="scorecard-section">
+        <h3>Scorecard</h3>
+        ${renderNine(holes, 1, 9, m)}
+        ${renderNine(holes, 10, 18, m)}
+      </div>
+
+      <div class="share-row">
+        <button id="copyLinkBtn">Copy match link</button>
+        <button id="editBtn">Edit a hole</button>
+      </div>
+    `;
+
+    appEl.querySelectorAll(".win-btn[data-result]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const hole = btn.getAttribute("data-hole");
+        const result = btn.getAttribute("data-result");
+        btn.classList.add("pressed");
+        try {
+          await updateDoc(ref, { [`holes.${hole}`]: result });
+        } catch (err) {
+          console.error(err);
+          toast("Couldn't save — check connection");
+        }
+      });
+    });
+
+    document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        toast("Link copied");
+      } catch {
+        toast(location.href);
+      }
+    });
+
+    document.getElementById("editBtn").addEventListener("click", () => {
+      toast("Tap any played hole below to change or clear it");
+      appEl.querySelectorAll(".hole-cell .mk:not(.empty)").forEach((mk) => {
+        mk.style.outline = "2px solid var(--flag)";
+        mk.style.outlineOffset = "2px";
+      });
+    });
+
+    appEl.querySelectorAll(".hole-cell").forEach((cell) => {
+      cell.addEventListener("click", async () => {
+        const hole = cell.getAttribute("data-hole");
+        const current = holes[hole];
+        if (!current) return;
+        const clear = confirm(`Clear the result for hole ${hole}?`);
+        if (clear) {
+          try { await updateDoc(ref, { [`holes.${hole}`]: deleteField() }); }
+          catch (err) { console.error(err); toast("Couldn't update"); }
+        }
+      });
+    });
+  }, (err) => {
+    console.error(err);
+    appEl.innerHTML = `<div class="conn-note">Can't reach the scoreboard — check the Firebase config in index.html.</div>`;
+  });
+}
+
+function renderNine(holes, start, end, m) {
+  const label = start === 1 ? "Front nine" : "Back nine";
+  let cells = "";
+  for (let h = start; h <= end; h++) {
+    const r = holes[h];
+    let mk = `<div class="mk empty">${h}</div>`;
+    if (r === "A") mk = `<div class="mk a">${initials(m.playerA)}</div>`;
+    else if (r === "B") mk = `<div class="mk b">${initials(m.playerB)}</div>`;
+    else if (r === "halve") mk = `<div class="mk halve">AS</div>`;
+    cells += `<div class="hole-cell" data-hole="${h}"><span class="hn">${h}</span>${mk}</div>`;
+  }
+  return `<div class="nine"><div class="nine-label">${label}</div><div class="hole-row">${cells}</div></div>`;
+}
+
+function initials(name) {
+  return escapeHtml((name || "?").trim().charAt(0).toUpperCase());
+}
+function shortName(name) {
+  return (name || "").split(" ")[0];
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+route();
+</script>
+</body>
+</html>
