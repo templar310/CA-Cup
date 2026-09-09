@@ -534,12 +534,12 @@ function renderHome(isAdmin) {
     ${isAdmin ? `<div id="teamScoreCard"></div>` : ""}
     <div class="board-header">
       <h2 style="margin:0;font-size:1.1rem;">Today's matches</h2>
-      <button class="new-match-btn" id="newMatchBtn">+ New match</button>
+      ${isAdmin ? `<button class="new-match-btn" id="newMatchBtn">+ New match</button>` : ""}
     </div>
     <div class="match-list" id="matchList"></div>
     ${isAdmin ? `<div class="admin-footer-link"><a href="#/">View as participant</a></div>` : ""}
   `;
-  document.getElementById("newMatchBtn").addEventListener("click", showNewMatchModal);
+  if (isAdmin) document.getElementById("newMatchBtn").addEventListener("click", showNewMatchModal);
 
   const q = query(matchesCol, orderBy("createdAt", "desc"));
   unsubscribeCurrent = onSnapshot(q, (snap) => {
@@ -551,7 +551,7 @@ function renderHome(isAdmin) {
       listEl.innerHTML = `
         <div class="empty-state">
           <div class="display">No matches yet</div>
-          <div>Start one and share the link with your group.</div>
+          <div>${isAdmin ? "Start one and share the link with your group." : "Check back once a captain sets up the pairings."}</div>
         </div>`;
       return;
     }
@@ -566,9 +566,11 @@ function renderHome(isAdmin) {
             <span class="vs">vs</span>
             <span>${escapeHtml(m.playerB)}</span>
           </div>
-          <div class="status-row">
-            <span class="status-pill ${status.kind}">${status.text}</span>
-          </div>
+          ${isAdmin ? `
+            <div class="status-row">
+              <span class="status-pill ${status.kind}">${status.text}</span>
+            </div>
+          ` : ""}
         </a>`;
     }).join("");
   }, (err) => {
