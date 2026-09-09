@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1F4D3C">
-<title>Match Play Live</title>
+<title>CA Cup 2026</title>
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,6 +103,38 @@
 
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
 
+  /* ---------- Team standings ---------- */
+  .team-score-card {
+    background: var(--cream-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 18px 20px 16px;
+    margin: 22px 0 4px;
+    box-shadow: var(--shadow);
+  }
+  .team-score-row { display: flex; align-items: flex-start; justify-content: center; gap: 22px; }
+  .team-score-side { flex: 0 1 140px; text-align: center; }
+  .team-score-side .team-name {
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--graphite-soft); margin-bottom: 2px;
+  }
+  .team-score-side .team-points {
+    font-size: 2.5rem; font-weight: 700; line-height: 1.1;
+  }
+  .team-score-side.chino .team-points { color: var(--up-a); }
+  .team-score-side.anaheim .team-points { color: var(--up-b); }
+  .team-score-divider {
+    font-family: "Fraunces", serif; font-size: 0.85rem; color: var(--graphite-soft);
+    padding-top: 22px;
+  }
+  .team-score-bar {
+    height: 8px; border-radius: 999px; overflow: hidden;
+    display: flex; margin-top: 14px; background: var(--hairline);
+  }
+  .team-score-bar .fill-chino { background: var(--up-a); }
+  .team-score-bar .fill-anaheim { background: var(--up-b); }
+  .team-score-note { text-align: center; font-size: 0.76rem; color: var(--graphite-soft); margin-top: 10px; }
+
   /* ---------- Home / clubhouse board ---------- */
   .board-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -194,10 +226,17 @@
 
   /* ---------- Match view ---------- */
   .back-link { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
-  .match-title { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+  .match-title { display: flex; align-items: flex-start; justify-content: center; gap: 14px; text-align: center; }
+  .match-title .side { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .match-title .team-tag {
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--graphite-soft);
+  }
+  .match-title .side.chino .team-tag { color: var(--up-a); }
+  .match-title .side.anaheim .team-tag { color: var(--up-b); }
   .match-title .name { font-size: 1.3rem; }
   .match-title .name.leading { text-decoration: underline; text-decoration-color: rgba(255,255,255,0.5); text-underline-offset: 4px; }
-  .match-title .vs-small { opacity: 0.7; font-size: 0.8rem; font-family: "Public Sans", sans-serif; }
+  .match-title .vs-small { opacity: 0.7; font-size: 0.8rem; font-family: "Public Sans", sans-serif; padding-top: 6px; }
 
   .result-banner {
     margin-top: 22px;
@@ -323,7 +362,7 @@
     <a href="#/" class="back-link" id="backLink" hidden>&larr; Clubhouse</a>
     <div class="masthead-row" id="mastheadRow">
       <div>
-        <h1><span class="flag-icon">⛳</span>Match Play Live</h1>
+        <h1><span class="flag-icon">⛳</span>CA Cup 2026</h1>
         <div class="sub" id="mastheadSub">Real-time scoring for the group</div>
       </div>
     </div>
@@ -402,6 +441,53 @@ function statusLabel(status, names) {
   };
 }
 
+/** Chino is always the "A" side, Anaheim always "B" — a match awards
+ * its point once it's decided (closed out, or all square through 18);
+ * matches still being played don't count toward the total yet. */
+function computeTeamTotals(matchDocs) {
+  let chino = 0, anaheim = 0, inProgress = 0;
+  matchDocs.forEach((d) => {
+    const status = computeStatus((d.data().holes) || {});
+    if (status.closedAt) {
+      if (status.closedAt.diff > 0) chino += 1; else anaheim += 1;
+    } else if (status.allSquareFinal) {
+      chino += 0.5; anaheim += 0.5;
+    } else {
+      inProgress++;
+    }
+  });
+  return { chino, anaheim, inProgress };
+}
+
+function renderTeamScoreCard(matchDocs) {
+  const { chino, anaheim, inProgress } = computeTeamTotals(matchDocs);
+  const sum = chino + anaheim;
+  const chinoPct = sum > 0 ? (chino / sum) * 100 : 50;
+  const anaheimPct = 100 - chinoPct;
+  return `
+    <div class="team-score-card">
+      <div class="team-score-row">
+        <div class="team-score-side chino">
+          <div class="team-name">Chino</div>
+          <div class="team-points mono">${chino}</div>
+        </div>
+        <div class="team-score-divider">vs</div>
+        <div class="team-score-side anaheim">
+          <div class="team-name">Anaheim</div>
+          <div class="team-points mono">${anaheim}</div>
+        </div>
+      </div>
+      ${sum > 0 ? `
+        <div class="team-score-bar">
+          <div class="fill-chino" style="width:${chinoPct}%"></div>
+          <div class="fill-anaheim" style="width:${anaheimPct}%"></div>
+        </div>
+      ` : ""}
+      ${inProgress > 0 ? `<div class="team-score-note">${inProgress} match${inProgress === 1 ? "" : "es"} still in progress</div>` : ""}
+    </div>
+  `;
+}
+
 /* ============================================================
    3. TINY ROUTER + RENDER
    ============================================================ */
@@ -436,6 +522,7 @@ window.addEventListener("hashchange", route);
 /* ---------- Home: clubhouse board ---------- */
 function renderHome() {
   appEl.innerHTML = `
+    <div id="teamScoreCard"></div>
     <div class="board-header">
       <h2 style="margin:0;font-size:1.1rem;">Today's matches</h2>
       <button class="new-match-btn" id="newMatchBtn">+ New match</button>
@@ -447,7 +534,9 @@ function renderHome() {
   const q = query(matchesCol, orderBy("createdAt", "desc"));
   unsubscribeCurrent = onSnapshot(q, (snap) => {
     const listEl = document.getElementById("matchList");
-    if (!listEl) return;
+    const scoreEl = document.getElementById("teamScoreCard");
+    if (!listEl || !scoreEl) return;
+    scoreEl.innerHTML = snap.empty ? "" : renderTeamScoreCard(snap.docs);
     if (snap.empty) {
       listEl.innerHTML = `
         <div class="empty-state">
@@ -484,17 +573,17 @@ function showNewMatchModal() {
   backdrop.innerHTML = `
     <div class="modal">
       <h2>New match</h2>
-      <div class="sub">Set up a head-to-head match play pairing.</div>
+      <div class="sub">Set up a Chino vs Anaheim match play pairing.</div>
       <div class="field">
         <label for="labelInput">Group / flight (optional)</label>
         <input id="labelInput" type="text" placeholder="e.g. Flight 2, Semifinal">
       </div>
       <div class="field">
-        <label for="nameAInput">Player / team A</label>
+        <label for="nameAInput">Chino player</label>
         <input id="nameAInput" type="text" placeholder="e.g. Alex" autofocus>
       </div>
       <div class="field">
-        <label for="nameBInput">Player / team B</label>
+        <label for="nameBInput">Anaheim player</label>
         <input id="nameBInput" type="text" placeholder="e.g. Sam">
       </div>
       <div class="modal-actions">
@@ -548,9 +637,15 @@ function renderMatch(matchId) {
 
     appEl.innerHTML = `
       <div class="match-title">
-        <span class="name ${status.diff > 0 ? "leading" : ""}">${escapeHtml(m.playerA)}</span>
+        <span class="side chino">
+          <span class="team-tag">Chino</span>
+          <span class="name ${status.diff > 0 ? "leading" : ""}">${escapeHtml(m.playerA)}</span>
+        </span>
         <span class="vs-small">vs</span>
-        <span class="name ${status.diff < 0 ? "leading" : ""}">${escapeHtml(m.playerB)}</span>
+        <span class="side anaheim">
+          <span class="team-tag">Anaheim</span>
+          <span class="name ${status.diff < 0 ? "leading" : ""}">${escapeHtml(m.playerB)}</span>
+        </span>
       </div>
 
       <div class="result-banner ${status.closedAt ? "closed" : ""}">
