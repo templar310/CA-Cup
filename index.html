@@ -137,6 +137,10 @@
   .admin-footer-link { text-align: center; margin-top: 26px; }
   .admin-footer-link a { font-size: 0.8rem; color: var(--graphite-soft); text-decoration: underline; text-underline-offset: 3px; }
 
+  .admin-gate { max-width: 320px; margin: 64px auto 0; text-align: center; }
+  .admin-gate .field { text-align: left; }
+  .admin-gate input { text-align: center; letter-spacing: 0.08em; }
+
   /* ---------- Home / clubhouse board ---------- */
   .board-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -498,11 +502,47 @@ const backLink = document.getElementById("backLink");
 const mastheadSub = document.getElementById("mastheadSub");
 let unsubscribeCurrent = null;
 
+/* Client-side gate on "#/admin" — a deterrent for casual visitors,
+ * not real security (the password lives in this file's source). */
+const ADMIN_PASSWORD = "cosadmin";
+const ADMIN_AUTH_KEY = "caCupAdminAuthed";
+
+function isAdminAuthed() {
+  try { return localStorage.getItem(ADMIN_AUTH_KEY) === "1"; } catch { return false; }
+}
+
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function renderAdminGate() {
+  appEl.innerHTML = `
+    <div class="admin-gate">
+      <div class="eyebrow">Captain access</div>
+      <h2 class="display" style="margin:6px 0 16px;">Enter password</h2>
+      <div class="field">
+        <input id="adminPasswordInput" type="password" placeholder="Password" autofocus>
+      </div>
+      <button class="btn btn-primary" id="adminSubmitBtn" style="width:100%;">Enter</button>
+      <div class="admin-footer-link"><a href="#/">Back to public view</a></div>
+    </div>
+  `;
+  const input = document.getElementById("adminPasswordInput");
+  const submit = () => {
+    if (input.value === ADMIN_PASSWORD) {
+      try { localStorage.setItem(ADMIN_AUTH_KEY, "1"); } catch {}
+      renderHome(true);
+    } else {
+      toast("Incorrect password");
+      input.value = "";
+      input.focus();
+    }
+  };
+  document.getElementById("adminSubmitBtn").addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
 }
 
 function route() {
@@ -516,7 +556,11 @@ function route() {
   } else if (hash === "#/admin") {
     backLink.hidden = true;
     mastheadSub.textContent = "Captain view — live team standings";
-    renderHome(true);
+    if (isAdminAuthed()) {
+      renderHome(true);
+    } else {
+      renderAdminGate();
+    }
   } else {
     backLink.hidden = true;
     mastheadSub.textContent = "Real-time scoring for the group";
